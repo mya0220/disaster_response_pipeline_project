@@ -1,31 +1,117 @@
 import sys
+import nltk
+nltk.download(['punkt', 'wordnet', 'averaged_perceptron_tagger'])
 
+
+import pickle
+import re
+import numpy as np
+import pandas as pd
+from nltk.tokenize import word_tokenize
+from nltk.stem import WordNetLemmatizer
+
+from sklearn.metrics import confusion_matrix, classification_report
+from sklearn.model_selection import GridSearchCV
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline, FeatureUnion
+from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
+
+from sqlalchemy import create_engine
+from sklearn.multioutput import MultiOutputClassifier
+from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.naive_bayes import MultinomialNB
 
 def load_data(database_filepath):
-    pass
+    """Load data from database"""
+    engine =  create_engine('sqlite:///{}'.format(database_filepath))
+    df = pd.read_sql_table('main_table', con = engine)
+    X = df.iloc[:, 1].values
+    Y = df.iloc[:, 4:-1].values
+    
+    return X, Y
 
 
 def tokenize(text):
-    pass
+    """
+    input: one message
+    output: a list of clean tokens for the msg
+    """
+    tokens = word_tokenize(text)
+    lemmatizer = WordNetLemmatizer()
+    
+    clean_tokens = []
+    for tok in tokens:
+        clean_tok = lemmatizer.lemmatize(tok).lower().strip()
+        clean_tokens.append(clean_tok)
+    
+    return clean_tokens
 
+class StartingVerbExtractor(BaseEstimator, TransformerMixin):
+
+    def starting_verb(self, text):
+        sentence_list = nltk.sent_tokenize(text)
+        for sentence in sentence_list:
+            pos_tags = nltk.pos_tag(tokenize(sentence))
+            first_word, first_tag = pos_tags[0]
+            if first_tag in ['VB', 'VBP'] or first_word == 'RT':
+                return True
+        return False
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        X_tagged = pd.Series(X).apply(self.starting_verb)
+        return pd.DataFrame(X_tagged)
 
 def build_model():
-    pass
+    """Build pipeline CV+PipeLine"""
+    
+    pipeline = Pipeline([
+        ('features', FeatureUnion([
+            ('text_pipeline', Pipeline([
+                ('vect', CountVectorizer(tokenizer=tokenize)),
+                ('tfidf', TfidfTransformer())
+            ])),
+        
+            ('start_verb', StartingVerbExtractor())
+        ])),
+    
+        ('clf', MultiOutputClassifier(MultinomialNB()))
+    ])
+
+    parameters = {
+        'clf__estimator__alpha':[0.1,1,10],
+        'features__text_pipeline__vect__ngram_range': ((1, 1), (1, 2)),
+    }
+
+    cv = GridSearchCV(pipeline, param_grid=parameters)
+
+    return cv
 
 
-def evaluate_model(model, X_test, Y_test, category_names):
-    pass
+def evaluate_model(model, X_test, Y_test):
+    """
+    Generate classification report
+    """
+    y_pred = model.predict(X_test)
+    res = classification_report(np.hstack(Y_test), np.hstack(y_pred))
+
+    return res
 
 
 def save_model(model, model_filepath):
-    pass
+    """Export model as pickle"""
+    pickle.dump(model, open(model_filepath,'wb'))
 
 
 def main():
     if len(sys.argv) == 3:
         database_filepath, model_filepath = sys.argv[1:]
         print('Loading data...\n    DATABASE: {}'.format(database_filepath))
-        X, Y, category_names = load_data(database_filepath)
+        X, Y = load_data(database_filepath)
         X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2)
         
         print('Building model...')
@@ -35,8 +121,9 @@ def main():
         model.fit(X_train, Y_train)
         
         print('Evaluating model...')
-        evaluate_model(model, X_test, Y_test, category_names)
-
+        res = evaluate_model(model, X_test, Y_test)
+        print(res)
+        
         print('Saving model...\n    MODEL: {}'.format(model_filepath))
         save_model(model, model_filepath)
 
