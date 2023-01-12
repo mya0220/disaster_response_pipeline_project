@@ -49,7 +49,7 @@ def save_data(df, database_filename):
     No output
     """
     engine = create_engine('sqlite:///{}'.format(database_filename))
-    df.to_sql('main_table', engine, index=False)
+    df.to_sql('main_table', engine, index=False, if_exists = 'replace')
 
 def main():
     if len(sys.argv) == 4:

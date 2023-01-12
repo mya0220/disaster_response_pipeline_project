@@ -6,6 +6,21 @@
         - /data contains 2 csv files that can be used to create a database, and then train model upon. 
         - /data/process_data.py contains the ETL process that finally stores data in database table.
         - /models/train_classifier.py contains a model pipeline to train, test, and save the model
+4. File Structure:
+        app
+        | - template
+        | |- master.html # main page of web app
+        | |- go.html # classification result page of web app
+        |- run.py # Flask file that runs app
+        data
+        |- disaster_categories.csv # data to process
+        |- disaster_messages.csv # data to process
+        |- process_data.py
+        |- InsertDatabaseName.db # database to save clean data to
+        models
+        |- train_classifier.py
+        |- classifier.pkl # saved model
+        README.md
 
 ### Instructions:
 1. Run the following commands in the project's root directory to set up your database and model.
