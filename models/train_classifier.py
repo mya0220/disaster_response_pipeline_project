@@ -30,7 +30,7 @@ def load_data(database_filepath):
     X = df.iloc[:, 1].values
     Y = df.iloc[:, 4:-1].values
     
-    return X, Y
+    return df, X, Y
 
 
 def tokenize(text):
@@ -92,14 +92,15 @@ def build_model():
     return cv
 
 
-def evaluate_model(model, X_test, Y_test):
+def evaluate_model(model, X_test, Y_test, cate_list):
     """
     Generate classification report
     """
     y_pred = model.predict(X_test)
-    for col in Y_test.columns:
-        print("category: ", col)
-        classification_report(Y_test[col], y_pred[col])
+
+    for i in range(len(Y_test[0])):
+        print("category: ", cate_list[i])
+        print(classification_report(Y_test[i], y_pred[i]))
 
 
 def save_model(model, model_filepath):
@@ -111,9 +112,10 @@ def main():
     if len(sys.argv) == 3:
         database_filepath, model_filepath = sys.argv[1:]
         print('Loading data...\n    DATABASE: {}'.format(database_filepath))
-        X, Y = load_data(database_filepath)
+        df, X, Y = load_data(database_filepath)
         X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2)
-        
+        cate_list = df.iloc[:,4:-1].columns.tolist()
+
         print('Building model...')
         model = build_model()
         
@@ -121,7 +123,7 @@ def main():
         model.fit(X_train, Y_train)
         
         print('Evaluating model...')
-        evaluate_model(model, X_test, Y_test)
+        evaluate_model(model, X_test, Y_test, cate_list)
         
         print('Saving model...\n    MODEL: {}'.format(model_filepath))
         save_model(model, model_filepath)
