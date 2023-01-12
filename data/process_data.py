@@ -48,8 +48,8 @@ def save_data(df, database_filename):
     Push dataframe into SQLAlchemy's table
     No output
     """
-    engine = create_engine('sqlite:///InsertDatabaseName.db')
-    df.to_sql(database_filename, engine, index=False)
+    engine = create_engine('sqlite:///{}'.format(database_filename))
+    df.to_sql('main_table', engine, index=False)
 
 def main():
     if len(sys.argv) == 4:
