@@ -97,9 +97,9 @@ def evaluate_model(model, X_test, Y_test):
     Generate classification report
     """
     y_pred = model.predict(X_test)
-    res = classification_report(np.hstack(Y_test), np.hstack(y_pred))
-
-    return res
+    for col in Y_test.columns:
+        print("category: ", col)
+        classification_report(Y_test[col], y_pred[col])
 
 
 def save_model(model, model_filepath):
@@ -121,8 +121,7 @@ def main():
         model.fit(X_train, Y_train)
         
         print('Evaluating model...')
-        res = evaluate_model(model, X_test, Y_test)
-        print(res)
+        evaluate_model(model, X_test, Y_test)
         
         print('Saving model...\n    MODEL: {}'.format(model_filepath))
         save_model(model, model_filepath)
