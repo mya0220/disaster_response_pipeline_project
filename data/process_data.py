@@ -34,6 +34,9 @@ def clean_data(df):
         categories[column] = categories[column].apply(lambda x: x[-1])
         categories[column] = categories[column].astype(int)
     
+    #problematic col 'related' convert it to binary by making val 2 into 1
+    categories['related'] = categories['related'].apply(lambda x: 1 if x==2 else x)
+
     # drop the original categories column from `df`, and concat categories
     df = df.drop('categories', axis=1)
     df = pd.concat([df,categories], axis=1)
