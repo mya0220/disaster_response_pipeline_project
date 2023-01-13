@@ -104,8 +104,8 @@ def index():
         {
             'data': [
                 Bar(
-                    x=top10cate,
-                    y=top10_names
+                    x=top10_names,
+                    y=top10cate
                 )
             ],
 
